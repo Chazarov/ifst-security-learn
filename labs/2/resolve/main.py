@@ -1,30 +1,60 @@
-from typing import Any
+from pathlib import Path
 
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.backends import default_backend
-
-from core import Algorithm, Mode
+from core import Algorithm, Mode, encrypt_file, get_cipher, DataModel
+import json
 
 # --- Параметры (настройка под задачу пользователя) ---
 
 
+cfg_path = Path("data.json")
+
+if cfg_path.exists():
+    with open(cfg_path, "r") as file:
+        data_raw = json.load(file)  # используем json.load, а не file.read() + json.loads
+else:
+    # создаём пустой JSON-файл с нулевыми значениями (все null)
+    empty_data = {
+        "key": None,
+        "inv": None,
+        "nonce": None,
+        "input_file": None,
+        "output_file": None,
+        "alg": None,
+        "mode": None,
+    }
+    cfg_path.write_text(json.dumps(empty_data, indent=2, ensure_ascii=False))
+    data_raw = empty_data
+
+data = DataModel.model_validate(data_raw)
+
+print("Указать параметры заново? Y/(N or Enter or Any)")
+use_default_str = input().strip().upper()
+while use_default_str not in ("Y", "N", "YES", "NO", ""):
+    print("Некорректный ввод выберите  Y или N")
+    use_default_str = input().strip().upper()
+    if use_default_str == "":
+        use_default_str = "N"
+renew_params = use_default_str in ("Y", "YES")
 
 
-print("Доступные алгоритмы: AES, CHACHA20, DES")
-algo_str = input("Выберите алгоритм: ").strip().upper()
-while algo_str not in (Algorithm.AES.value, Algorithm.CHACHA.value, Algorithm.DES.value):
-    print("Неверный алгоритм. Допустимые значения: AES, CHACHA20, DES")
+alg = data.alg
+if(alg == None or renew_params):
+    print(f"Доступные алгоритмы: AES, CHACHA20, DES  Текущее значение: {data.alg}")
     algo_str = input("Выберите алгоритм: ").strip().upper()
-alg = Algorithm(algo_str)
+    while algo_str not in (Algorithm.AES.value, Algorithm.CHACHA.value, Algorithm.DES.value):
+        print("Неверный алгоритм. Допустимые значения: AES, CHACHA20, DES")
+        algo_str = input("Выберите алгоритм: ").strip().upper()
+    alg = Algorithm(algo_str)
 
 
 # --- MODE (ECB/CBC) ---
 
-print("\nДоступные режимы: ECB, CBC  (для ChaCha20 режим игнорируется)")
-mode_str = input("Выберите режим: ").strip().upper()
+print(f"\nДоступные режимы: ECB, CBC  (для ChaCha20 режим игнорируется)" \
+f" текущее значение: {data.mode}")
+mode_str = input("Введите режим: ").strip().upper()
 while mode_str not in (Mode.ECB.value, Mode.CBC.value):
     print("Неверный режим. Допустимые значения: ECB, CBC")
-    mode_str = input("Выберите режим: ").strip().upper()
+    mode_str = input("Введите режим: ").strip().upper()
 mode = Mode(mode_str)
 
 
@@ -121,49 +151,12 @@ if alg == Algorithm.CHACHA:
 
 # --- Конструктор шифра под выбранный алгоритм/режим ---
 
-def get_cipher(algo_name: Algorithm, mode_name: Mode, key: bytes, iv:bytes, nonce:bytes):
-    backend = default_backend()
-
-    if algo_name == "AES":
-        if mode_name == "ECB":
-            return Cipher(algorithms.AES(key), modes.ECB(), backend=backend)
-        else:  # CBC
-            return Cipher(algorithms.AES(key), modes.CBC(iv), backend=backend)
-
-    elif algo_name == "DES":
-        if mode_name == "ECB":
-            return Cipher(algorithms.TripleDES(key), modes.ECB(), backend=backend)
-        else:  # CBC
-            return Cipher(algorithms.TripleDES(key), modes.CBC(iv), backend=backend)
-
-    elif algo_name == Algorithm.CHACHA:
-        # ChaCha20 не использует ECB/CBC, только stream с nonce
-        return Cipher(algorithms.ChaCha20(key, nonce), mode=None, backend=backend)
-
-    raise ValueError("Unsupported algorithm")
-
-# --- Функция шифрования файла блоками ---
-
-def encrypt_file(in_path: str, out_path: str, cipher_factory:Cipher[Any]):
-    with open(in_path, "rb") as fin, open(out_path, "wb") as fout:
-        encryptor = cipher_factory.encryptor()
-
-        while True:
-            chunk = fin.read(4096)
-            if not chunk:
-                break
-            encrypted = encryptor.update(chunk)
-            fout.write(encrypted)
-
-        # завершаем шифратор (для режимов с padding)
-        final = encryptor.finalize()
-        if final:
-            fout.write(final)
 
 # --- Выбор шифра и запуск ---
 
-cipher = get_cipher(alg, mode, key_input, iv_input, nonce_input)
+if __name__ == "__main__":
+    cipher = get_cipher(alg, mode, key_input, iv_input, nonce_input)
 
-print(f"Encrypting with {alg} / {mode}...")
-encrypt_file(inp_path, out_path, cipher)
-print("Done.")
+    print(f"Encrypting with {alg} / {mode}...")
+    encrypt_file(inp_path, out_path, cipher)
+    print("Done.")

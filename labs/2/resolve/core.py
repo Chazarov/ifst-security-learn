@@ -3,8 +3,11 @@ from typing import Any
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
+from pydantic import BaseModel
 
 # --- Параметры (настройка под задачу пользователя) ---
+
+
 
 
 class Algorithm(Enum, str):
@@ -16,6 +19,15 @@ class Algorithm(Enum, str):
 class Mode(Enum, str):
     CBC = "CBC"
     ECB = "ECB"
+
+class DataModel(BaseModel):
+    key:str|None
+    inv:str|None
+    nonce:str|None
+    input_file:str|None
+    output_file:str|None
+    alg:Algorithm|None
+    mode:Mode|None
 
 
 
@@ -55,5 +67,22 @@ def encrypt_file(in_path: str, out_path: str, cipher_factory:Cipher[Any]):
 
         # завершаем шифратор (для режимов с padding)
         final = encryptor.finalize()
+        if final:
+            fout.write(final)
+
+
+
+def decrypt_file(in_path: str, out_path: str, cipher_factory: Cipher[Any]):
+    with open(in_path, "rb") as fin, open(out_path, "wb") as fout:
+        decryptor = cipher_factory.decryptor()
+
+        while True:
+            chunk = fin.read(4096)
+            if not chunk:
+                break
+            decrypted = decryptor.update(chunk)
+            fout.write(decrypted)
+
+        final = decryptor.finalize()
         if final:
             fout.write(final)
