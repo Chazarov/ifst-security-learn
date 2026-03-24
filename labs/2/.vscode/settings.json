@@ -1,0 +1,10 @@
+{
+    "python.linting.enabled": true,
+    "python.linting.mypyEnabled": true,
+    "python.linting.mypyArgs": [
+        "--strict",
+        "--warn-return-any",
+        "--warn-unused-ignores"
+    ],
+    "python.analysis.typeCheckingMode": "strict"
+}
