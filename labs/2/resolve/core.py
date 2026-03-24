@@ -22,7 +22,7 @@ class Mode(Enum, str):
 
 class DataModel(BaseModel):
     key:str|None
-    inv:str|None
+    iv:str|None
     nonce:str|None
     input_file:str|None
     output_file:str|None
