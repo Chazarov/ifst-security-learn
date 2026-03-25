@@ -21,13 +21,13 @@ class Mode(Enum, str):
     ECB = "ECB"
 
 class DataModel(BaseModel):
-    key:str|None
-    iv:str|None
-    nonce:str|None
-    input_file:str|None
-    output_file:str|None
-    alg:Algorithm|None
-    mode:Mode|None
+    key:str
+    iv:str
+    nonce:str
+    input_file:str
+    output_file:str
+    alg:Algorithm
+    mode:Mode
 
 
 

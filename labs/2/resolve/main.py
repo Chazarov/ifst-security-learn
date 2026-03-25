@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any, Dict
 
 from core import Algorithm, Mode, encrypt_file, get_cipher, DataModel
 import json
@@ -12,14 +13,14 @@ if cfg_path.exists():
     with open(cfg_path, "r") as file:
         data_raw = json.load(file)
 else:
-    empty_data = {
-        "key": None,
-        "inv": None,
-        "nonce": None,
-        "input_file": None,
-        "output_file": None,
-        "alg": None,
-        "mode": None,
+    empty_data: Dict[str, Any] = {
+        "key": "",
+        "inv": "",
+        "nonce": "",
+        "input_file": "input.txt",
+        "output_file": "output.txt",
+        "alg": Algorithm.AES,
+        "mode": Mode.CBC,
     }
     cfg_path.write_text(json.dumps(empty_data, indent=2, ensure_ascii=False))
     data_raw = empty_data
@@ -42,7 +43,7 @@ renew_params = use_default_str in ("Y", "YES")
 
 
 alg = data.alg
-if(alg == None or renew_params):
+if(renew_params):
     print(f"Доступные алгоритмы: AES, CHACHA20, DES  Текущее значение: {data.alg}")
     while True:
         algo_str = input("Выберите алгоритм (Или enter чтобы оставить текущее): ").strip().upper()
@@ -55,7 +56,7 @@ if(alg == None or renew_params):
             print(f"Некорректное значение. Введите еще раз")
 
 mode = data.mode
-if(mode == None or renew_params):
+if(renew_params):
     print(f"\nДоступные режимы: ECB, CBC  (для ChaCha20 режим игнорируется)" \
     f" текущее значение: {data.mode}")
     while True:
@@ -69,13 +70,13 @@ if(mode == None or renew_params):
             print(f"Некорректное значение. Введите еще раз")
 
 key = data.key
-if (data.key is None or renew_params):
+if (data.key == "" or renew_params):
     print(f"\nВведите ключ в виде строки (максимум 32 символа)\n" \
           f"(текущее значение:{data.key}):")
     while True:
         key = input("(Или enter чтобы оставить текущее) KEY: ")
         if key == "":
-            if data.key != None:
+            if data.key != "":
                 key = data.key
             else:
                 print("ключ не может быть пустым. Повторите ввод!")
@@ -99,13 +100,13 @@ if (data.key is None or renew_params):
 
 
 iv = data.iv
-if(iv is None or renew_params):
+if(iv == "" or renew_params):
     print(f"\nВведите IV (для AES требуется 16 байт, для DES 8 байт; введите минимум 8 символов) "
           f"\n (текущее значение: {data.iv}):")
     while True:
         iv = input("(Или enter чтобы оставить текущее) IV: ")
         if iv == "":
-            if data.iv!= None:
+            if data.iv != "":
                 iv = data.iv
             else:
                 print(" IV не может быть пустым! Повторите ввод!")
@@ -125,13 +126,13 @@ if(iv is None or renew_params):
         break
 
 nonce = data.nonce
-if(nonce is None or renew_params):
+if(nonce == "" or renew_params):
     print("\nВведите nonce (для ChaCha20 требуется 12 байт; введите минимум 12 символов)\n"
           f"текущее значение: {data.nonce}")
     while True:
         nonce = input("(Или enter чтобы оставить текущее) NONCE: ")
         if nonce == "":
-            if data.nonce != None:
+            if data.nonce != "":
                 nonce = data.nonce
             else:
                 print(" nonce не может быть пустым! Повторите ввод!")
@@ -151,32 +152,34 @@ if(nonce is None or renew_params):
 # --- INPUT_FILE ---
 
 inp_path = data.input_file
-if(inp_path is None or renew_params):
+if(inp_path == "" or renew_params):
     print("\nВведите путь к входному файлу. "\
           f"\n (текущее значение: {data.input_file}):")
     while True:
         inp_path = input("(enter чтобы оставить текущее) INPUT_FILE:").strip()
         if inp_path == "" :
-            inp_path = data.input_file
-        if inp_path == None: #type: ignore
-            print("Путь к входному файлу не может быть пустым.")
-            continue
+            if(data.input_file != ""):
+                inp_path = data.input_file
+            else: 
+                print("Параметр не может быть пустым. Повторите ввод")
+                continue
         break
 
 
 # --- OUTPUT_FILE ---
 
 out_path = data.output_file
-if(out_path is None or renew_params):
+if(out_path == "" or renew_params):
     print("\nВведите путь к выходному файлу. "\
           f"\n (текущее значение: {data.output_file}):")
     while True:
         out_path = input("(enter чтобы оставить текущее) INPUT_FILE:").strip()
         if out_path == "" :
-            out_path = data.output_file
-        if out_path == None: #type: ignore
-            print("Путь к входному файлу не может быть пустым.")
-            continue
+            if data.output_file != "":
+                out_path = data.output_file
+            else:
+                print("Путь к входному файлу не может быть пустым. Повторите ввод")
+                continue
         break
 
 
@@ -191,7 +194,7 @@ if alg == Algorithm.CHACHA:
 
 # --- Выбор шифра и запуск ---
 if __name__ == "__main__":
-    cipher = get_cipher(alg, mode, key, iv, nonce)
+    cipher = get_cipher(alg, mode, key.encode("utf-8"), iv.encode("utf-8"), nonce.encode("utf-8"))
 
     print(f"Encrypting with {alg} / {mode}...")
     encrypt_file(inp_path, out_path, cipher)
