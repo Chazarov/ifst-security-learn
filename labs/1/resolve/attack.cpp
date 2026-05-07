@@ -1,27 +1,27 @@
 #include "cesar.h"
 #include <fstream>
 void statistical_decrypt(const std::string& enc, const std::string& ref_json, const std::string& out) {
-  double fe[256] = {};
+  double fe[ASCII_SIZE] = {};
   if (!load_statistics_json(ref_json, fe)) return;
-  unsigned long long cc[256] = {};
+  unsigned long long cc[ASCII_SIZE] = {};
   std::ifstream fin(enc, std::ios::binary);
   if (!fin) return;
   char ch;
   unsigned long long tot = 0;
   while (fin.get(ch)) {
     int u = static_cast<unsigned char>(ch);
-    if (u < 256) cc[u]++;
+    if (u < ASCII_SIZE) cc[u]++;
     tot++;
   }
-  double fc[256] = {};
+  double fc[ASCII_SIZE] = {};
   if (tot > 0) {
-    for (int i = 0; i < 256; ++i) fc[i] = static_cast<double>(cc[i]) / static_cast<double>(tot);
+    for (int i = 0; i < ASCII_SIZE; ++i) fc[i] = static_cast<double>(cc[i]) / static_cast<double>(tot);
   }
   int bestk = 0;
   double best = -1.0;
   for (int k = 0; k < ASCII_SIZE; ++k) {
     double s = 0.0;
-    for (int i = 0; i < 256; ++i) s += fe[i] * fc[(i + k) % 256];
+    for (int i = 0; i < ASCII_SIZE; ++i) s += fe[i] * fc[(i + k) % ASCII_SIZE];
     if (s > best) { best = s; bestk = k; }
   }
   fin.clear();

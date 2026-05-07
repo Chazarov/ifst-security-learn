@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+
 static void usage() {
   std::cout
       << "cesar stat <in> <out.json>\n"
