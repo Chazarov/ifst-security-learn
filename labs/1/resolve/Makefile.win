@@ -4,8 +4,8 @@
 CPP      = g++.exe -D__DEBUG__
 CC       = gcc.exe -D__DEBUG__
 WINDRES  = windres.exe
-OBJ      = main.o cesar.o statistics.o attack.o
-LINKOBJ  = main.o cesar.o statistics.o attack.o
+OBJ      = main.o attack.o cesar.o statistics.o
+LINKOBJ  = main.o attack.o cesar.o statistics.o
 LIBS     = -L"C:/Program Files (x86)/Embarcadero/Dev-Cpp/TDM-GCC-64/lib" -L"C:/Program Files (x86)/Embarcadero/Dev-Cpp/TDM-GCC-64/x86_64-w64-mingw32/lib" -static-libgcc -g3
 INCS     = -I"C:/Program Files (x86)/Embarcadero/Dev-Cpp/TDM-GCC-64/include" -I"C:/Program Files (x86)/Embarcadero/Dev-Cpp/TDM-GCC-64/x86_64-w64-mingw32/include" -I"C:/Program Files (x86)/Embarcadero/Dev-Cpp/TDM-GCC-64/lib/gcc/x86_64-w64-mingw32/9.2.0/include"
 CXXINCS  = -I"C:/Program Files (x86)/Embarcadero/Dev-Cpp/TDM-GCC-64/include" -I"C:/Program Files (x86)/Embarcadero/Dev-Cpp/TDM-GCC-64/x86_64-w64-mingw32/include" -I"C:/Program Files (x86)/Embarcadero/Dev-Cpp/TDM-GCC-64/lib/gcc/x86_64-w64-mingw32/9.2.0/include" -I"C:/Program Files (x86)/Embarcadero/Dev-Cpp/TDM-GCC-64/lib/gcc/x86_64-w64-mingw32/9.2.0/include/c++"
@@ -24,14 +24,14 @@ clean: clean-custom
 $(BIN): $(OBJ)
 	$(CPP) $(LINKOBJ) -o $(BIN) $(LIBS)
 
-main.o: main.cpp cesar.h
+main.o: main.cpp
 	$(CPP) -c main.cpp -o main.o $(CXXFLAGS)
 
-cesar.o: cesar.cpp cesar.h
+attack.o: attack.cpp
+	$(CPP) -c attack.cpp -o attack.o $(CXXFLAGS)
+
+cesar.o: cesar.cpp
 	$(CPP) -c cesar.cpp -o cesar.o $(CXXFLAGS)
 
-statistics.o: statistics.cpp cesar.h
+statistics.o: statistics.cpp
 	$(CPP) -c statistics.cpp -o statistics.o $(CXXFLAGS)
-
-attack.o: attack.cpp cesar.h
-	$(CPP) -c attack.cpp -o attack.o $(CXXFLAGS)
