@@ -11,8 +11,8 @@ services:
     environment:
       REDIS_URL: redis://redis:6379/0
       JWT_SECRET: lab6-jwt-secret
-      ACCESS_TTL_MIN: "1"
-      REFRESH_TTL_DAYS: "7"
+      ACCESS_TTL_SEC: "60"
+      REFRESH_TTL_SEC: "604800"
     volumes:
       - ../data/e823e08eb26ea8cdb30f4174bebcebc7.jpg:/app/data/cat.jpg:ro
     depends_on:

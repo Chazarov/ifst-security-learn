@@ -96,6 +96,11 @@ def cat(_user: dict = Depends(bearer)) -> FileResponse:
     return FileResponse(CAT, media_type="image/jpeg")
 
 
+@app.get("/admin/users")
+def users(_admin: dict = Depends(admin)) -> dict:
+    return {"users": auth.list_users()}
+
+
 @app.post("/admin/revoke")
 def revoke(body: RevokeIn, _admin: dict = Depends(admin)) -> dict:
     auth.revoke_user(body.username)

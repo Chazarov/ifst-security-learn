@@ -41,13 +41,20 @@ async function api(path, opts = {}, token) {
   return res;
 }
 
+const box = { maxWidth: 360, margin: "40px auto", fontFamily: "sans-serif" };
+const input = { display: "block", width: "100%", marginBottom: 8, boxSizing: "border-box" };
+const link = { color: "#06c", cursor: "pointer", background: "none", border: "none", padding: 0 };
+
 export default function App() {
+  const [page, setPage] = useState("login");
   const [user, setUser] = useState(null);
   const [login, setLogin] = useState({ username: "", password: "" });
   const [reg, setReg] = useState({ username: "", password: "" });
   const [revoke, setRevoke] = useState("");
+  const [users, setUsers] = useState([]);
   const [cat, setCat] = useState("");
   const [err, setErr] = useState("");
+  const [msg, setMsg] = useState("");
 
   const loadMe = async () => {
     const { access } = store.get();
@@ -58,6 +65,7 @@ export default function App() {
       return setUser(null);
     }
     setUser(await res.json());
+    setPage("home");
   };
 
   useEffect(() => {
@@ -72,13 +80,22 @@ export default function App() {
     setCat(URL.createObjectURL(blob));
   };
 
+  const loadUsers = async () => {
+    const { access } = store.get();
+    const res = await api("/admin/users", {}, access);
+    if (res.ok) setUsers((await res.json()).users);
+  };
+
   useEffect(() => {
-    if (user) loadCat().catch((e) => setErr(e.message));
+    if (!user) return;
+    loadCat().catch((e) => setErr(e.message));
+    if (user.role === "admin") loadUsers();
   }, [user]);
 
   const doLogin = async (e) => {
     e.preventDefault();
     setErr("");
+    setMsg("");
     const res = await fetch(`${API}/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -88,19 +105,23 @@ export default function App() {
     const data = await res.json();
     store.set(data.access, data.refresh, data.role);
     setUser({ username: login.username, role: data.role });
+    setPage("home");
   };
 
   const doRegister = async (e) => {
     e.preventDefault();
     setErr("");
+    setMsg("");
     const res = await fetch(`${API}/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(reg),
     });
     if (!res.ok) return setErr("Не удалось зарегистрироваться");
-    setLogin(reg);
+    setLogin({ username: reg.username, password: "" });
     setReg({ username: "", password: "" });
+    setPage("login");
+    setMsg("Аккаунт создан. Войдите.");
   };
 
   const doLogout = async () => {
@@ -111,6 +132,9 @@ export default function App() {
     store.clear();
     setUser(null);
     setCat("");
+    setUsers([]);
+    setPage("login");
+    setErr("");
   };
 
   const doRevoke = async (e) => {
@@ -121,53 +145,80 @@ export default function App() {
       { method: "POST", body: JSON.stringify({ username: revoke }) },
       access
     );
-    setErr(res.ok ? `Токены ${revoke} отозваны` : "Ошибка отзыва");
+    if (res.ok) {
+      setErr("");
+      setMsg(`Токены ${revoke} отозваны`);
+      loadUsers();
+    } else {
+      setMsg("");
+      setErr("Ошибка отзыва");
+    }
   };
 
-  if (!user) {
+  if (!user && page === "login") {
     return (
-      <div style={{ maxWidth: 360, margin: "40px auto", fontFamily: "sans-serif" }}>
+      <div style={box}>
         <h2>Вход</h2>
         <form onSubmit={doLogin}>
           <input
             placeholder="Логин"
             value={login.username}
             onChange={(e) => setLogin({ ...login, username: e.target.value })}
-            style={{ display: "block", width: "100%", marginBottom: 8 }}
+            style={input}
           />
           <input
             type="password"
             placeholder="Пароль"
             value={login.password}
             onChange={(e) => setLogin({ ...login, password: e.target.value })}
-            style={{ display: "block", width: "100%", marginBottom: 8 }}
+            style={input}
           />
           <button type="submit">Войти</button>
         </form>
-        <h3 style={{ marginTop: 24 }}>Регистрация</h3>
+        <p style={{ marginTop: 16 }}>
+          Нет аккаунта?{" "}
+          <button type="button" style={link} onClick={() => { setErr(""); setMsg(""); setPage("register"); }}>
+            Создать
+          </button>
+        </p>
+        {err && <p style={{ color: "crimson" }}>{err}</p>}
+        {msg && <p style={{ color: "green" }}>{msg}</p>}
+      </div>
+    );
+  }
+
+  if (!user && page === "register") {
+    return (
+      <div style={box}>
+        <h2>Регистрация</h2>
         <form onSubmit={doRegister}>
           <input
             placeholder="Логин"
             value={reg.username}
             onChange={(e) => setReg({ ...reg, username: e.target.value })}
-            style={{ display: "block", width: "100%", marginBottom: 8 }}
+            style={input}
           />
           <input
             type="password"
             placeholder="Пароль"
             value={reg.password}
             onChange={(e) => setReg({ ...reg, password: e.target.value })}
-            style={{ display: "block", width: "100%", marginBottom: 8 }}
+            style={input}
           />
-          <button type="submit">Зарегистрироваться</button>
+          <button type="submit">Создать аккаунт</button>
         </form>
-        {err && <p style={{ color: "crimson" }}>{err}</p>}
-        <p style={{ fontSize: 12, color: "#666", marginTop: 16 }}>
-          Токены: localStorage (уязвимость XSS → кража токенов)
+        <p style={{ marginTop: 16 }}>
+          Уже есть аккаунт?{" "}
+          <button type="button" style={link} onClick={() => { setErr(""); setPage("login"); }}>
+            Войти
+          </button>
         </p>
+        {err && <p style={{ color: "crimson" }}>{err}</p>}
       </div>
     );
   }
+
+  if (!user) return null;
 
   return (
     <div style={{ maxWidth: 520, margin: "40px auto", fontFamily: "sans-serif" }}>
@@ -180,21 +231,29 @@ export default function App() {
         </div>
       )}
       {user.role === "admin" && (
-        <form onSubmit={doRevoke} style={{ marginTop: 24 }}>
-          <h3>Отозвать токены пользователя</h3>
-          <input
-            placeholder="Логин"
-            value={revoke}
-            onChange={(e) => setRevoke(e.target.value)}
-            style={{ marginRight: 8 }}
-          />
-          <button type="submit">Отозвать</button>
-        </form>
+        <>
+          <h3 style={{ marginTop: 24 }}>Пользователи</h3>
+          <ul style={{ paddingLeft: 20 }}>
+            {users.map((u) => (
+              <li key={u.username}>
+                {u.username} — {u.role}
+              </li>
+            ))}
+          </ul>
+          <form onSubmit={doRevoke} style={{ marginTop: 16 }}>
+            <h3>Отозвать токены</h3>
+            <input
+              placeholder="Логин"
+              value={revoke}
+              onChange={(e) => setRevoke(e.target.value)}
+              style={{ marginRight: 8 }}
+            />
+            <button type="submit">Отозвать</button>
+          </form>
+        </>
       )}
-      {err && <p style={{ color: user.role === "admin" ? "green" : "crimson" }}>{err}</p>}
-      <p style={{ fontSize: 12, color: "#666", marginTop: 16 }}>
-        Access ~1 мин → автообновление через refresh
-      </p>
+      {err && <p style={{ color: "crimson" }}>{err}</p>}
+      {msg && <p style={{ color: "green" }}>{msg}</p>}
     </div>
   );
 }
