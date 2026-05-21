@@ -1,0 +1,31 @@
+JWT-авторизация на низком уровне — это не «проверка логина по токену», а **проверка криптографически подписанной строки**, из которой сервер извлекает claims и решает, давать ли доступ. [serverion](https://www.serverion.com/ru/uncategorized/how-to-secure-apis-with-jwts/)
+## Алгоритм работы
+1. Клиент отправляет логин/пароль на endpoint входа.
+2. Сервер проверяет пароль по своей базе.
+3. Если проверка успешна, сервер формирует JWT как строку из трех частей: `header.payload.signature`, разделенных точками. [hostragons](https://www.hostragons.com/ru/%D0%B1%D0%BB%D0%BE%D0%B3/%D1%81%D0%BE%D0%B2%D1%80%D0%B5%D0%BC%D0%B5%D0%BD%D0%BD%D0%B0%D1%8F-%D0%B0%D1%83%D1%82%D0%B5%D0%BD%D1%82%D0%B8%D1%84%D0%B8%D0%BA%D0%B0%D1%86%D0%B8%D1%8F-%D1%81-oauth-2-0-%D0%B8-jwt/)
+4. `header` обычно содержит тип токена и алгоритм подписи, например `alg` и `typ`. [hostragons](https://www.hostragons.com/ru/%D0%B1%D0%BB%D0%BE%D0%B3/%D1%81%D0%BE%D0%B2%D1%80%D0%B5%D0%BC%D0%B5%D0%BD%D0%BD%D0%B0%D1%8F-%D0%B0%D1%83%D1%82%D0%B5%D0%BD%D1%82%D0%B8%D1%84%D0%B8%D0%BA%D0%B0%D1%86%D0%B8%D1%8F-%D1%81-oauth-2-0-%D0%B8-jwt/)
+5. `payload` содержит claims: `sub`, `exp`, `iat`, `iss`, `aud`, роли, id пользователя и прочие данные авторизации. [hostragons](https://www.hostragons.com/ru/%D0%B1%D0%BB%D0%BE%D0%B3/%D1%81%D0%BE%D0%B2%D1%80%D0%B5%D0%BC%D0%B5%D0%BD%D0%BD%D0%B0%D1%8F-%D0%B0%D1%83%D1%82%D0%B5%D0%BD%D1%82%D0%B8%D1%84%D0%B8%D0%BA%D0%B0%D1%86%D0%B8%D1%8F-%D1%81-oauth-2-0-%D0%B8-jwt/)
+6. Сервер кодирует `header` и `payload` в Base64URL, **не шифрует**, а именно кодирует.
+7. Затем сервер вычисляет `signature` как результат криптографической функции от `base64url(header) + "." + base64url(payload)` и секретного ключа или приватного ключа, в зависимости от алгоритма подписи. [hostragons](https://www.hostragons.com/ru/%D0%B1%D0%BB%D0%BE%D0%B3/%D1%81%D0%BE%D0%B2%D1%80%D0%B5%D0%BC%D0%B5%D0%BD%D0%BD%D0%B0%D1%8F-%D0%B0%D1%83%D1%82%D0%B5%D0%BD%D1%82%D0%B8%D1%84%D0%B8%D0%BA%D0%B0%D1%86%D0%B8%D1%8F-%D1%81-oauth-2-0-%D0%B8-jwt/)
+8. Клиент хранит токен и отправляет его в запросах, обычно в `Authorization: Bearer ...`. [serverion](https://www.serverion.com/ru/uncategorized/how-to-secure-apis-with-jwts/)
+9. Сервер при каждом запросе заново вычисляет подпись и сравнивает ее с пришедшей в токене.
+10. Если подпись совпала и срок действия не истек, сервер доверяет claims и выполняет authorization check. [serverion](https://www.serverion.com/ru/uncategorized/how-to-secure-apis-with-jwts/)
+## Низкоуровневые детали
+### 1. Base64URL
+JWT использует Base64URL, а не обычный Base64: вместо `+` и `/` применяются URL-safe символы, и обычно убираются `=` padding-символы. Это нужно, чтобы токен можно было безопасно передавать в HTTP-заголовках и URL. [hostragons](https://www.hostragons.com/ru/%D0%B1%D0%BB%D0%BE%D0%B3/%D1%81%D0%BE%D0%B2%D1%80%D0%B5%D0%BC%D0%B5%D0%BD%D0%BD%D0%B0%D1%8F-%D0%B0%D1%83%D1%82%D0%B5%D0%BD%D1%82%D0%B8%D1%84%D0%B8%D0%BA%D0%B0%D1%86%D0%B8%D1%8F-%D1%81-oauth-2-0-%D0%B8-jwt/)
+### 2. Подпись
+Подпись защищает токен от подмены. Если изменить хотя бы один байт в payload, проверка подписи сломается. Для HMAC-схем сервер использует общий секрет, а для RSA/ECDSA — публичный ключ для проверки и приватный для выпуска. [serverion](https://www.serverion.com/ru/uncategorized/how-to-secure-apis-with-jwts/)
+### 3. Claims
+Claims — это обычные поля JSON, но сервер должен считать их **недоверенными**, пока не проверена подпись. Сам по себе payload не секретный: любой может декодировать его без ключа, поэтому туда нельзя класть пароли или чувствительные данные. [hostragons](https://www.hostragons.com/ru/%D0%B1%D0%BB%D0%BE%D0%B3/%D1%81%D0%BE%D0%B2%D1%80%D0%B5%D0%BC%D0%B5%D0%BD%D0%BD%D0%B0%D1%8F-%D0%B0%D1%83%D1%82%D0%B5%D0%BD%D1%82%D0%B8%D1%84%D0%B8%D0%BA%D0%B0%D1%86%D0%B8%D1%8F-%D1%81-oauth-2-0-%D0%B8-jwt/)
+### 4. `exp`, `iat`, `nbf`
+Срок жизни токена проверяется по `exp`, время выпуска — по `iat`, а `nbf` запрещает использование до указанного момента. Проверка обычно идет с небольшим допуском по времени, чтобы компенсировать рассинхронизацию часов между системами. [hostragons](https://www.hostragons.com/ru/%D0%B1%D0%BB%D0%BE%D0%B3/%D1%81%D0%BE%D0%B2%D1%80%D0%B5%D0%BC%D0%B5%D0%BD%D0%BD%D0%B0%D1%8F-%D0%B0%D1%83%D1%82%D0%B5%D0%BD%D1%82%D0%B8%D1%84%D0%B8%D0%BA%D0%B0%D1%86%D0%B8%D1%8F-%D1%81-oauth-2-0-%D0%B8-jwt/)
+### 5. Проверка контекста
+Помимо подписи сервер часто сверяет `iss` и `aud`, чтобы токен, выданный одним сервисом, нельзя было использовать в другом. Это уже не криптография, а защита от replay и misuse в распределенных системах. [serverion](https://www.serverion.com/ru/uncategorized/how-to-secure-apis-with-jwts/)
+## Что JWT не делает
+JWT **не шифрует** данные и не скрывает их содержимое; он только обеспечивает целостность и, при асимметричных схемах, проверяемую подлинность. JWT также не является сам по себе авторизацией — это носитель claims, а решение о доступе принимает серверная логика. [serverion](https://www.serverion.com/ru/uncategorized/how-to-secure-apis-with-jwts/)
+## Практический пример
+Если у тебя в токене есть `role=admin`, сервер не должен просто верить этому полю «по факту наличия». Он сначала проверяет подпись, затем срок действия, затем может сверить пользователя с текущими правилами доступа, и только после этого разрешить административный endpoint. [serverion](https://www.serverion.com/ru/uncategorized/how-to-secure-apis-with-jwts/)
+## Где ломаются
+Самые частые ошибки — слабый секрет, неверный выбор алгоритма, отсутствие проверки `exp`, доверие payload без валидации подписи и хранение JWT в небезопасном месте на клиенте. Еще одна важная проблема: если токен украден, он действует до истечения срока, если не внедрены refresh-токены, blacklist или revocation-механизм. [ru.stackoverflow](https://ru.stackoverflow.com/questions/1168939/%D0%9A%D0%B0%D0%BA-%D0%BF%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D1%8C%D0%BD%D0%BE-%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%BE%D0%B2%D0%B0%D1%82%D1%8C-jwt-%D0%B0%D1%83%D1%82%D0%B5%D0%BD%D1%82%D0%B8%D1%84%D0%B8%D0%BA%D0%B0%D1%86%D0%B8%D1%8E)
+
+Могу следующим сообщением разобрать это уже совсем «по байтам»: как выглядит `header.payload.signature`, как именно считается HMAC-SHA256, и как сервер валидирует токен шаг за шагом.
