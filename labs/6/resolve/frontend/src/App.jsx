@@ -1,42 +1,44 @@
 import { useEffect, useState } from "react";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API = import.meta.env.VITE_API_URL || "/api";
 
 const store = {
   get: () => ({
     access: localStorage.getItem("access"),
-    refresh: localStorage.getItem("refresh"),
     role: localStorage.getItem("role"),
   }),
-  set: (access, refresh, role) => {
+  set: (access, role) => {
     localStorage.setItem("access", access);
-    localStorage.setItem("refresh", refresh);
     localStorage.setItem("role", role);
   },
   clear: () => {
     localStorage.removeItem("access");
-    localStorage.removeItem("refresh");
     localStorage.removeItem("role");
   },
 };
 
+const creds = { credentials: "include" };
+
+async function tryRefresh() {
+  const r = await fetch(`${API}/refresh`, { method: "POST", ...creds });
+  if (!r.ok) return null;
+  const data = await r.json();
+  store.set(data.access, data.role ?? store.get().role);
+  return data.access;
+}
+
 async function api(path, opts = {}, token) {
   const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
   if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`${API}${path}`, { ...opts, headers });
-  if (res.status === 401 && store.get().refresh) {
-    const r = await fetch(`${API}/refresh`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh: store.get().refresh }),
-    });
-    if (r.ok) {
-      const data = await r.json();
-      store.set(data.access, data.refresh, store.get().role);
-      headers.Authorization = `Bearer ${data.access}`;
-      return fetch(`${API}${path}`, { ...opts, headers });
+  let res = await fetch(`${API}${path}`, { ...opts, headers, ...creds });
+  if (res.status === 401) {
+    const access = await tryRefresh();
+    if (access) {
+      headers.Authorization = `Bearer ${access}`;
+      res = await fetch(`${API}${path}`, { ...opts, headers, ...creds });
+    } else {
+      store.clear();
     }
-    store.clear();
   }
   return res;
 }
@@ -57,8 +59,11 @@ export default function App() {
   const [msg, setMsg] = useState("");
 
   const loadMe = async () => {
-    const { access } = store.get();
-    if (!access) return setUser(null);
+    let { access } = store.get();
+    if (!access) {
+      access = await tryRefresh();
+      if (!access) return setUser(null);
+    }
     const res = await api("/me", {}, access);
     if (!res.ok) {
       store.clear();
@@ -100,10 +105,11 @@ export default function App() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(login),
+      ...creds,
     });
     if (!res.ok) return setErr("Неверный логин или пароль");
     const data = await res.json();
-    store.set(data.access, data.refresh, data.role);
+    store.set(data.access, data.role);
     setUser({ username: login.username, role: data.role });
     setPage("home");
   };
@@ -116,6 +122,7 @@ export default function App() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(reg),
+      ...creds,
     });
     if (!res.ok) return setErr("Не удалось зарегистрироваться");
     setLogin({ username: reg.username, password: "" });
@@ -125,9 +132,13 @@ export default function App() {
   };
 
   const doLogout = async () => {
-    const { refresh, access } = store.get();
-    if (refresh) {
-      await api("/logout", { method: "POST", body: JSON.stringify({ refresh }) }, access);
+    const { access } = store.get();
+    if (access) {
+      await fetch(`${API}/logout`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${access}` },
+        ...creds,
+      });
     }
     store.clear();
     setUser(null);
@@ -183,6 +194,9 @@ export default function App() {
         </p>
         {err && <p style={{ color: "crimson" }}>{err}</p>}
         {msg && <p style={{ color: "green" }}>{msg}</p>}
+        <p style={{ fontSize: 12, color: "#666", marginTop: 16 }}>
+          Access — localStorage; refresh — HttpOnly cookie
+        </p>
       </div>
     );
   }
@@ -254,6 +268,9 @@ export default function App() {
       )}
       {err && <p style={{ color: "crimson" }}>{err}</p>}
       {msg && <p style={{ color: "green" }}>{msg}</p>}
+      <p style={{ fontSize: 12, color: "#666", marginTop: 16 }}>
+        Access 60 сек → обновление через refresh cookie
+      </p>
     </div>
   );
 }

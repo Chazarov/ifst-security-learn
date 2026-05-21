@@ -13,6 +13,8 @@ services:
       JWT_SECRET: lab6-jwt-secret
       ACCESS_TTL_SEC: "60"
       REFRESH_TTL_SEC: "604800"
+      FRONTEND_ORIGINS: "http://localhost:3000,http://127.0.0.1:3000"
+      COOKIE_SECURE: "false"
     volumes:
       - ../data/e823e08eb26ea8cdb30f4174bebcebc7.jpg:/app/data/cat.jpg:ro
     depends_on:
@@ -22,7 +24,7 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_API_URL: http://localhost:8000
+        VITE_API_URL: /api
     ports:
       - "3000:80"
     depends_on:
