@@ -1,0 +1,29 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: lab6-jwt-secret
+      ACCESS_TTL_MIN: "1"
+      REFRESH_TTL_DAYS: "7"
+    volumes:
+      - ../data/e823e08eb26ea8cdb30f4174bebcebc7.jpg:/app/data/cat.jpg:ro
+    depends_on:
+      - redis
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:8000
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
