@@ -1,0 +1,3 @@
+<?php
+// Учебный файл для Unrestricted File Upload (переименуйте в upload_test.php)
+echo "LAB7_UPLOAD_OK";

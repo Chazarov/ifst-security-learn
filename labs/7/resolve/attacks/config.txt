@@ -1,0 +1,5 @@
+# Базовый URL bWAPP (без слэша в конце)
+# Docker compose: http://localhost:8080
+# Локальный Apache: http://localhost
+
+BWAPP=http://localhost
