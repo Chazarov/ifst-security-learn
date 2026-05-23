@@ -9,12 +9,13 @@ services:
     ports:
       - "8000:8000"
     environment:
-      REDIS_URL: redis://redis:6379/0
-      JWT_SECRET: lab6-jwt-secret
-      ACCESS_TTL_SEC: "60"
-      REFRESH_TTL_SEC: "604800"
-      FRONTEND_ORIGINS: "http://localhost:3000,http://127.0.0.1:3000"
-      COOKIE_SECURE: "false"
+      - REDIS_URL=redis://redis:6379/0
+      - ACCESS_TTL_SEC=60
+      - REFRESH_TTL_SEC=604800
+      - FRONTEND_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      - COOKIE_SECURE=false
+    env_file:
+      - .env
     volumes:
       - ../data/e823e08eb26ea8cdb30f4174bebcebc7.jpg:/app/data/cat.jpg:ro
     depends_on:

@@ -6,10 +6,13 @@ import bcrypt
 import redis
 from jose import JWTError, jwt
 
-REDIS = os.getenv("REDIS_URL", "redis://redis:6379/0")
-SECRET = os.getenv("JWT_SECRET", "lab6-jwt-secret")
-ACCESS_SEC = int(os.getenv("ACCESS_TTL_SEC", "60"))
-REFRESH_SEC = int(os.getenv("REFRESH_TTL_SEC", "604800"))
+REDIS = os.getenv("REDIS_URL")
+SECRET = os.getenv("JWT_SECRET")
+ACCESS_SEC = int(os.getenv("ACCESS_TTL_SEC"))
+REFRESH_SEC = int(os.getenv("REFRESH_TTL_SEC"))
+ADMIN_PASSWORD = (os.getenv("ADMIN_PASSWORD"))
+ADMIN_ROLE = "admin"
+ADMIN_USERNAME = "creator"
 
 db = redis.from_url(REDIS, decode_responses=True)
 
@@ -23,24 +26,28 @@ def _verify(password: str, hashed: str) -> bool:
 
 
 def _uk(u: str) -> str:
+    # user profile constant storage
     return f"user:{u}"
 
 
 def _bl(jti: str) -> str:
+    # blacklist constsnt storage
     return f"bl:{jti}"
 
 
 def _rt(jti: str) -> str:
+    # refresh token constant storage
     return f"rt:{jti}"
 
 
 def _at(jti: str) -> str:
+    # access token constant storage
     return f"at:{jti}"
 
 
 def init_admin() -> None:
-    if not db.exists(_uk("creator")):
-        db.hset(_uk("creator"), mapping={"password": _hash("1124816"), "role": "admin"})
+    if not db.exists(_uk(ADMIN_USERNAME)):
+        db.hset(_uk(ADMIN_USERNAME), mapping={"password": _hash(ADMIN_PASSWORD), "role": ADMIN_ROLE})
 
 
 def register(username: str, password: str) -> None:
